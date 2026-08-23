@@ -161,6 +161,14 @@ body {
     return;
   }
 
+  // Aktualizacja baneru Open Graph z pliku JSON
+  if (data.series_banner) {
+    let ogImg = document.querySelector('meta[property="og:image"]');
+    if (ogImg) {
+    ogImg.setAttribute("content", data.series_banner);
+    }
+  }
+  
   localStorage.setItem(`read_${comicKey}_${chapterDecoded}`, "1");
 
   let prefetchImg = null;
