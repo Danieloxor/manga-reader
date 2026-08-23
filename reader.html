@@ -63,6 +63,14 @@ body {
   background: #333;
 }
 
+/* Przeskalowanie grafik strzałek z 762x968 do ikony */
+.nav-icon {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 /* Nagłówek serii */
 #series-header {
   position: fixed;
@@ -87,20 +95,23 @@ body {
   </a>
 </div>
 
-<!-- Kontener na obrazy rozdzialu -->
+<!-- Kontener na obrazy rozdziału -->
 <div id="comic-container"></div>
 
-<!-- Pływające nawigacja -->
+<!-- Pływająca nawigacja z plikami graficznymi -->
 <div class="nav-buttons" id="nav">
-  <div class="nav-btn" id="nextBtn" title="Następny">➔</div>
-  <div class="nav-btn" id="prevBtn" title="Poprzedni">⬅</div>
+  <div class="nav-btn" id="nextBtn" title="Następny">
+    <img src="assets/arrow_right.png" class="nav-icon" alt="Następny">
+  </div>
+  <div class="nav-btn" id="prevBtn" title="Poprzedni">
+    <img src="assets/arrow_left.png" class="nav-icon" alt="Poprzedni">
+  </div>
   <div class="nav-btn" id="homeBtn" title="Strona Główna">🏠</div>
 </div>
 
 <script>
 (async function(){
-  // --- KONFIGURACJA GŁÓWNA ---
-  const MAIN_SITE_URL = "https://twoja-domena.duckdns.org"; // Adres Twojego WordPressa
+  const MAIN_SITE_URL = "https://twoja-domena.duckdns.org";
 
   const qs = new URLSearchParams(location.search);
   const comicKey = qs.get("comic");
@@ -113,12 +124,10 @@ body {
     return;
   }
 
-  // Powrót do WordPressa
   document.getElementById("homeBtn").onclick = () => {
     location.href = MAIN_SITE_URL;
   };
 
-  // Pobieranie pliku JSON z rozdziałami
   let rawJson;
   try {
     rawJson = await fetch(`data/${comicKey}.json`).then(r => r.text());
@@ -129,7 +138,6 @@ body {
 
   const data = JSON.parse(rawJson);
 
-  // Ustawienie Logo/Ikonki serii
   if(data.series_icon){
     document.getElementById("series-img").src = data.series_icon;
     document.getElementById("series-link").href = `${MAIN_SITE_URL}/manga/${comicKey}`;
@@ -141,10 +149,8 @@ body {
     return;
   }
 
-  // Zapis do localStorage (oznaczenie jako przeczytane)[cite: 1]
   localStorage.setItem(`read_${comicKey}_${chapterDecoded}`, "1");
 
-  // Ładowanie obrazów sekwencyjnie z prefetchowaniem kolejnego[cite: 1]
   let prefetchImg = null;
 
   function loadImage(i){
@@ -156,7 +162,7 @@ body {
         resolve(img);
       };
       img.onerror = () => {
-        img.src = pages[i] + "?r=" + Date.now(); // Ponowna próba przy błędzie[cite: 1]
+        img.src = pages[i] + "?r=" + Date.now();
       };
       container.appendChild(img);
       img.src = pages[i];
@@ -174,7 +180,6 @@ body {
   }
   loadSequence();
 
-  // Kolejność rozdziałów[cite: 1]
   const keys = Object.keys(data.chapters);
   const idx = keys.indexOf(chapterDecoded);
 
@@ -195,7 +200,6 @@ body {
   };
 })();
 
-// Autoukrywanie przycisków podczas scrollowania w dół[cite: 1]
 let lastScroll = 0;
 const nav = document.getElementById("nav");
 const header = document.getElementById("series-header");
@@ -212,13 +216,11 @@ window.addEventListener("scroll", () => {
   lastScroll = y;
 });
 
-// Sterowanie strzałkami na klawiaturze[cite: 1]
 document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight") document.getElementById("nextBtn").click();
   if (e.key === "ArrowLeft") document.getElementById("prevBtn").click();
 });
 
-// Kliknięcie w ekran przewija o 90% wysokości[cite: 1]
 document.addEventListener("click", e => {
   if (e.target.classList.contains("comic-page") && e.clientY > window.innerHeight * 0.2) {
     window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' });
