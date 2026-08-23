@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Czytnik</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+
+<style>
+body {
+  margin: 0;
+  background: #191818;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: white;
+}
+#comic-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Obrazy i efekt płynnego pojawiania się */
+.comic-page {
+  width: 100%;
+  display: block;
+  max-width: 720px;
+  image-rendering: -webkit-optimize-contrast;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.comic-page.loaded {
+  opacity: 1;
+}
+
+/* Przycisk nawigacji (Pływające menu) */
+.nav-buttons {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity .15s;
+  z-index: 1000;
+}
+.nav-buttons.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(39, 39, 39, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-weight: bold;
+}
+.nav-btn:hover {
+  background: #333;
+}
+
+/* Nagłówek serii */
+#series-header {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  transition: opacity .15s;
+}
+#series-img {
+  max-height: 30px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Nagłówek z logo serii -->
+<div id="series-header">
+  <a id="series-link" href="#">
+    <img id="series-img" src="" alt="Series">
+  </a>
+</div>
+
+<!-- Kontener na obrazy rozdzialu -->
+<div id="comic-container"></div>
+
+<!-- Pływające nawigacja -->
+<div class="nav-buttons" id="nav">
+  <div class="nav-btn" id="nextBtn" title="Następny">➔</div>
+  <div class="nav-btn" id="prevBtn" title="Poprzedni">⬅</div>
+  <div class="nav-btn" id="homeBtn" title="Strona Główna">🏠</div>
+</div>
+
+<script>
+(async function(){
+  // --- KONFIGURACJA GŁÓWNA ---
+  const MAIN_SITE_URL = "https://twoja-domena.duckdns.org"; // Adres Twojego WordPressa
+
+  const qs = new URLSearchParams(location.search);
+  const comicKey = qs.get("comic");
+  const chapter = qs.get("chapter");
+  const chapterDecoded = decodeURIComponent(chapter);
+  const container = document.getElementById("comic-container");
+
+  if(!comicKey || !chapter){
+    container.innerHTML = "<p style='text-align:center;padding:50px;'>Brak wskazanego rozdziału.</p>";
+    return;
+  }
+
+  // Powrót do WordPressa
+  document.getElementById("homeBtn").onclick = () => {
+    location.href = MAIN_SITE_URL;
+  };
+
+  // Pobieranie pliku JSON z rozdziałami
+  let rawJson;
+  try {
+    rawJson = await fetch(`data/${comicKey}.json`).then(r => r.text());
+  } catch(e) {
+    container.innerHTML = "<p style='text-align:center;padding:50px;'>Błąd ładowania pliku JSON.</p>";
+    return;
+  }
+
+  const data = JSON.parse(rawJson);
+
+  // Ustawienie Logo/Ikonki serii
+  if(data.series_icon){
+    document.getElementById("series-img").src = data.series_icon;
+    document.getElementById("series-link").href = `${MAIN_SITE_URL}/manga/${comicKey}`;
+  }
+
+  const pages = data.chapters[chapterDecoded];
+  if(!pages){
+    container.innerHTML = "<p style='text-align:center;padding:50px;'>Rozdział nie istnieje.</p>";
+    return;
+  }
+
+  // Zapis do localStorage (oznaczenie jako przeczytane)[cite: 1]
+  localStorage.setItem(`read_${comicKey}_${chapterDecoded}`, "1");
+
+  // Ładowanie obrazów sekwencyjnie z prefetchowaniem kolejnego[cite: 1]
+  let prefetchImg = null;
+
+  function loadImage(i){
+    return new Promise(resolve => {
+      const img = document.createElement("img");
+      img.className = "comic-page";
+      img.onload = () => {
+        img.classList.add("loaded");
+        resolve(img);
+      };
+      img.onerror = () => {
+        img.src = pages[i] + "?r=" + Date.now(); // Ponowna próba przy błędzie[cite: 1]
+      };
+      container.appendChild(img);
+      img.src = pages[i];
+    });
+  }
+
+  async function loadSequence(){
+    const first = await loadImage(0);
+    if(pages[1]) prefetchImg = loadImage(1);
+
+    for(let i = 1; i < pages.length; i++){
+      let img = prefetchImg ? await prefetchImg : await loadImage(i);
+      prefetchImg = pages[i+1] ? loadImage(i+1) : null;
+    }
+  }
+  loadSequence();
+
+  // Kolejność rozdziałów[cite: 1]
+  const keys = Object.keys(data.chapters);
+  const idx = keys.indexOf(chapterDecoded);
+
+  document.getElementById("nextBtn").onclick = () => {
+    if(idx < keys.length - 1){
+      location.href = `reader.html?comic=${comicKey}&chapter=${encodeURIComponent(keys[idx + 1])}`;
+    } else {
+      location.href = MAIN_SITE_URL;
+    }
+  };
+
+  document.getElementById("prevBtn").onclick = () => {
+    if(idx > 0){
+      location.href = `reader.html?comic=${comicKey}&chapter=${encodeURIComponent(keys[idx - 1])}`;
+    } else {
+      location.href = MAIN_SITE_URL;
+    }
+  };
+})();
+
+// Autoukrywanie przycisków podczas scrollowania w dół[cite: 1]
+let lastScroll = 0;
+const nav = document.getElementById("nav");
+const header = document.getElementById("series-header");
+
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  if (y > lastScroll && y > 100) {
+    nav.classList.add("hidden");
+    header.style.opacity = "0";
+  } else {
+    nav.classList.remove("hidden");
+    header.style.opacity = "1";
+  }
+  lastScroll = y;
+});
+
+// Sterowanie strzałkami na klawiaturze[cite: 1]
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") document.getElementById("nextBtn").click();
+  if (e.key === "ArrowLeft") document.getElementById("prevBtn").click();
+});
+
+// Kliknięcie w ekran przewija o 90% wysokości[cite: 1]
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("comic-page") && e.clientY > window.innerHeight * 0.2) {
+    window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' });
+  }
+});
+</script>
+
+</body>
+</html>
