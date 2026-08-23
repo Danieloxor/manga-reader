@@ -161,12 +161,26 @@ body {
     return;
   }
 
-  // Aktualizacja baneru Open Graph z pliku JSON
+// Dynamiczna zmiana tytułu karty przeglądarki oraz tagów Open Graph (Discord / Social)
+  if (data.series_title) {
+    const fullTitle = `${data.series_title} — Rozdział ${chapterDecoded}`;
+    document.title = fullTitle;
+    
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", fullTitle);
+  }
+
+  if (data.series_desc) {
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", data.series_desc);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", data.series_desc);
+  }
+
   if (data.series_banner) {
-    let ogImg = document.querySelector('meta[property="og:image"]');
-    if (ogImg) {
-    ogImg.setAttribute("content", data.series_banner);
-    }
+    const ogImg = document.querySelector('meta[property="og:image"]');
+    if (ogImg) ogImg.setAttribute("content", data.series_banner);
   }
   
   localStorage.setItem(`read_${comicKey}_${chapterDecoded}`, "1");
