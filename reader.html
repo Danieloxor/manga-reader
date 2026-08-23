@@ -35,11 +35,11 @@ body {
 /* Przycisk nawigacji (Pływające menu) */
 .nav-buttons {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 25px;
+  left: 25px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   transition: opacity .15s;
   z-index: 1000;
 }
@@ -47,28 +47,30 @@ body {
   opacity: 0;
   pointer-events: none;
 }
+
+/* Przyciski jako czyste ikony bez kółek i tła */
 .nav-btn {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background: rgba(39, 39, 39, 0.9);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.1);
-  font-weight: bold;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 .nav-btn:hover {
-  background: #333;
+  transform: scale(1.15);
+  filter: brightness(1.2);
 }
 
-/* Przeskalowanie grafik strzałek z 762x968 do ikony */
+/* Jednolity rozmiar i cień pod ikonami dla lepszej widoczności */
 .nav-icon {
-  height: 22px;
-  width: auto;
+  width: 55px;
+  height: 55px;
   object-fit: contain;
   display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
 }
 
 /* Nagłówek serii */
@@ -98,7 +100,7 @@ body {
 <!-- Kontener na obrazy rozdziału -->
 <div id="comic-container"></div>
 
-<!-- Pływająca nawigacja z plikami graficznymi -->
+<!-- Pływająca nawigacja - same ikony PNG -->
 <div class="nav-buttons" id="nav">
   <div class="nav-btn" id="nextBtn" title="Następny">
     <img src="assets/arrow_right.png" class="nav-icon" alt="Następny">
@@ -106,7 +108,9 @@ body {
   <div class="nav-btn" id="prevBtn" title="Poprzedni">
     <img src="assets/arrow_left.png" class="nav-icon" alt="Poprzedni">
   </div>
-  <div class="nav-btn" id="homeBtn" title="Strona Główna">🏠</div>
+  <div class="nav-btn" id="homeBtn" title="Strona Główna">
+    <img src="assets/home.png" class="nav-icon" alt="Strona Główna">
+  </div>
 </div>
 
 <script>
